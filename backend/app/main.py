@@ -1,18 +1,23 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.core.qdrant import ensure_collection
 
-# FastAPI() creates your web application object.
-# Think of it as the central hub — every route, middleware,
-# and startup logic attaches to this one object.
-app = FastAPI(title="DocPilot API")
+# lifespan is a context manager that runs code when the server starts
+# and when it stops. It replaces the older @app.on_event("startup") pattern.
+#
+# yield is the dividing line:
+# - everything BEFORE yield = startup code
+# - everything AFTER yield = shutdown code
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("🚀 Starting up...")
+    ensure_collection()   # create Qdrant collection if it doesn't exist
+    yield
+    print("👋 Shutting down...")
 
-# CORS middleware explained:
-# Your browser has a security rule: a page loaded from localhost:3000
-# cannot make requests to localhost:8000 unless the server explicitly
-# says "that's okay." This middleware adds that permission to every
-# response the backend sends.
-# Without this, your Next.js frontend will be blocked the moment
-# it tries to call the backend.
+app = FastAPI(title="DocPilot API", lifespan=lifespan)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -20,10 +25,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# A health check endpoint.
-# @app.get("/health") means: when a GET request arrives at /health,
-# run this function and return the result as JSON.
-# Useful for checking if the server is alive.
 @app.get("/health")
 async def health():
     return {"status": "ok", "service": "docpilot-api"}
