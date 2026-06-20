@@ -16,7 +16,7 @@ def get_qdrant() -> QdrantClient:
         _client = QdrantClient(url=settings.qdrant_url)
     return _client
 
-def ensure_collection(vector_size: int = 768):
+def ensure_collection(vector_size: int = 384):
     """
     Creates the Qdrant collection if it doesn't already exist.
     Called once at startup so every route can assume the collection is ready.
@@ -41,6 +41,6 @@ def ensure_collection(vector_size: int = 768):
                 # for text embeddings.
             ),
         )
-        print(f"✅ Created Qdrant collection: {settings.qdrant_collection}")
+        print(f"Created Qdrant collection: {settings.qdrant_collection}")
     else:
-        print(f"✅ Collection '{settings.qdrant_collection}' already exists")
+        print(f"Collection '{settings.qdrant_collection}' already exists")
