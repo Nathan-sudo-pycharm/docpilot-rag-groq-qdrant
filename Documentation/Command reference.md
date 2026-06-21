@@ -82,6 +82,10 @@ python -m pip freeze > requirements.txt
 # Install from requirements file (on a new machine)
 python -m pip install -r requirements.txt
 
+# Check an installed package's version (useful when API methods
+# don't match older example code/tutorials)
+python -m pip show qdrant-client
+
 # Open a Python shell to test imports/functions manually
 python
 # then inside the shell, e.g.:
@@ -117,6 +121,12 @@ http://localhost:8000/redoc      ← alternative API docs
 
 **Testing file upload endpoints:**
 Use the `/docs` Swagger UI — click the endpoint, "Try it out", choose a file, "Execute". Easier than curl on Windows for multipart uploads.
+
+**Testing streaming (SSE) endpoints:**
+Swagger UI shows the full stream as a scrollable list of `data: token` lines once complete — good enough to confirm it's working without needing a real frontend yet.
+
+**Testing rate limiting manually:**
+Click "Execute" repeatedly (11+ times within a minute) on a rate-limited endpoint in Swagger UI. Expect a `429` with a JSON body like `{"error": "Rate limit exceeded: 10 per 1 minute"}` once the limit is hit.
 
 ---
 
@@ -186,6 +196,24 @@ from app.core.config import settings
 info = get_qdrant().get_collection(settings.qdrant_collection)
 print(info.points_count)
 ```
+
+**Searching/querying a collection directly via Python (modern API):**
+```python
+from app.core.qdrant import get_qdrant
+from app.core.config import settings
+from app.services.embedder import embed_texts
+
+[vector] = embed_texts(["some query text"])
+response = get_qdrant().query_points(
+    collection_name=settings.qdrant_collection,
+    query=vector,
+    limit=5,
+    with_payload=True,
+)
+for point in response.points:
+    print(point.payload["text"])
+```
+Note: `qdrant-client` 1.18+ uses `query_points()`, not the older `.search()` method.
 
 ---
 
@@ -260,6 +288,18 @@ QDRANT_COLLECTION=support_docs
 | `torch` DLL load fails (`WinError 1114`) | Install Microsoft Visual C++ Redistributable: https://aka.ms/vs/17/release/vc_redist.x64.exe — then restart terminal completely |
 | HuggingFace symlink warning on model download | Harmless — ignore, or enable Windows Developer Mode to silence it |
 | File saved in VS Code but Python still sees old version | Confirm the tab's unsaved-changes dot is gone; if unsure, save again with Ctrl+S |
+| `TabError: inconsistent use of tabs and spaces` in interactive Python shell | Happens when pasting indented code (like `for` loops) directly into the `python` REPL. Either type it manually, or save it as a `.py` script and run that instead |
+
+---
+
+## Library API Version Gotchas
+
+| Library | Old API (tutorials/older docs) | New API (what we actually use) |
+|---|---|---|
+| `langchain` | `from langchain.text_splitter import ...` | `from langchain_text_splitters import ...` |
+| `qdrant-client` | `client.search(...)` returns a bare list | `client.query_points(...)` returns an object with `.points` |
+
+**General rule:** if example code throws an `AttributeError` or `ImportError`, check the installed version with `python -m pip show <package>` and look for renamed methods/modules before assuming the code is wrong.
 
 ---
 
