@@ -42,6 +42,9 @@ git ls-files | Select-String "filename"
 
 # Remove a file/folder from git tracking WITHOUT deleting it from disk
 git rm -r --cached folder_name
+
+# Search .gitignore for a specific rule
+cat .gitignore | Select-String "lib"
 ```
 
 **Commit message format:**
@@ -56,6 +59,10 @@ refactor(scope): restructure, no behaviour change
 
 **Rule of thumb:** checkout the destination branch first, then merge the source branch into it.
 Full explanation in `git-learning-log.md`.
+
+**Gitignore gotcha:** a pattern like `lib/` (no leading slash) matches a folder named `lib`
+ANYWHERE in the repo, not just at the root. Use `/lib/` to match only the root-level folder,
+or be specific like `backend/venv/lib/`.
 
 ---
 
@@ -95,7 +102,7 @@ exit()
 ```
 
 **If `pip.exe` is blocked with "Application Control policy" error:**
-Always use `python -m pip ...` instead of `pip ...` — this routes through Python directly and bypasses the restriction on most managed/locked-down Windows systems.
+Always use `python -m pip ...` instead of `pip ...`.
 
 ---
 
@@ -104,6 +111,9 @@ Always use `python -m pip ...` instead of `pip ...` — this routes through Pyth
 ```powershell
 # Run the backend (from inside backend/ folder, with venv active)
 uvicorn app.main:app --reload --port 8000
+
+# If uvicorn.exe itself gets blocked by Application Control / Smart App Control:
+python -m uvicorn app.main:app --reload --port 8000
 
 # What each part means:
 # app.main   → folder app, file main.py
@@ -120,13 +130,13 @@ http://localhost:8000/redoc      ← alternative API docs
 ```
 
 **Testing file upload endpoints:**
-Use the `/docs` Swagger UI — click the endpoint, "Try it out", choose a file, "Execute". Easier than curl on Windows for multipart uploads.
+Use the `/docs` Swagger UI — click the endpoint, "Try it out", choose a file, "Execute".
 
 **Testing streaming (SSE) endpoints:**
-Swagger UI shows the full stream as a scrollable list of `data: token` lines once complete — good enough to confirm it's working without needing a real frontend yet.
+Swagger UI shows the full stream as a scrollable list of `data: token` lines once complete.
 
 **Testing rate limiting manually:**
-Click "Execute" repeatedly (11+ times within a minute) on a rate-limited endpoint in Swagger UI. Expect a `429` with a JSON body like `{"error": "Rate limit exceeded: 10 per 1 minute"}` once the limit is hit.
+Click "Execute" repeatedly (11+ times within a minute) on a rate-limited endpoint. Expect a `429`.
 
 ---
 
@@ -187,7 +197,6 @@ from app.core.qdrant import get_qdrant
 from app.core.config import settings
 get_qdrant().delete_collection(settings.qdrant_collection)
 ```
-Then restart uvicorn — `ensure_collection()` recreates it with the new config on startup.
 
 **Checking a collection's point count directly via Python:**
 ```python
@@ -213,7 +222,6 @@ response = get_qdrant().query_points(
 for point in response.points:
     print(point.payload["text"])
 ```
-Note: `qdrant-client` 1.18+ uses `query_points()`, not the older `.search()` method.
 
 ---
 
@@ -268,15 +276,19 @@ code app/main.py
 
 ## Environment Variables Reference
 
-`backend/.env` (gitignored, never committed):
-
+`backend/.env` (gitignored):
 ```
 GROQ_API_KEY=gsk_...
 QDRANT_URL=http://localhost:6333
 QDRANT_COLLECTION=support_docs
 ```
+**Must live inside `backend/`**, not project root.
 
-**Important:** `.env` must live inside `backend/`, not the project root — `pydantic-settings` resolves the path relative to where the process runs from.
+`frontend/.env.local` (gitignored):
+```
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+**Must have `NEXT_PUBLIC_` prefix** to be accessible in browser-side code.
 
 ---
 
@@ -285,10 +297,13 @@ QDRANT_COLLECTION=support_docs
 | Problem | Fix |
 |---|---|
 | `pip.exe` blocked by Application Control policy | Use `python -m pip` instead of `pip` |
-| `torch` DLL load fails (`WinError 1114`) | Install Microsoft Visual C++ Redistributable: https://aka.ms/vs/17/release/vc_redist.x64.exe — then restart terminal completely |
-| HuggingFace symlink warning on model download | Harmless — ignore, or enable Windows Developer Mode to silence it |
-| File saved in VS Code but Python still sees old version | Confirm the tab's unsaved-changes dot is gone; if unsure, save again with Ctrl+S |
-| `TabError: inconsistent use of tabs and spaces` in interactive Python shell | Happens when pasting indented code (like `for` loops) directly into the `python` REPL. Either type it manually, or save it as a `.py` script and run that instead |
+| `uvicorn.exe` blocked by Application Control / Smart App Control | Use `python -m uvicorn ...` instead |
+| `ImportError: DLL load failed while importing cygrpc` | Smart App Control blocking grpc's compiled DLL — disable via Settings → Privacy & security → Windows Security → App & browser control → Smart App Control |
+| `torch` DLL load fails (`WinError 1114`) | Install Microsoft Visual C++ Redistributable: https://aka.ms/vs/17/release/vc_redist.x64.exe — restart terminal |
+| HuggingFace symlink warning on model download | Harmless — ignore |
+| File saved in VS Code but Python still sees old version | Confirm the tab's unsaved-changes dot is gone |
+| `TabError: inconsistent use of tabs and spaces` in interactive shell | Happens pasting indented code into `python` REPL — type manually or run as a script |
+| `git add` says path is ignored, but it shouldn't be | Check root `.gitignore` for overly broad rules (e.g. `lib/` without a leading slash matching unrelated folders) |
 
 ---
 
@@ -299,7 +314,29 @@ QDRANT_COLLECTION=support_docs
 | `langchain` | `from langchain.text_splitter import ...` | `from langchain_text_splitters import ...` |
 | `qdrant-client` | `client.search(...)` returns a bare list | `client.query_points(...)` returns an object with `.points` |
 
-**General rule:** if example code throws an `AttributeError` or `ImportError`, check the installed version with `python -m pip show <package>` and look for renamed methods/modules before assuming the code is wrong.
+**General rule:** if example code throws an `AttributeError` or `ImportError`, check the installed version with `python -m pip show <package>` before assuming the code is wrong.
+
+---
+
+## TypeScript Quick Reference
+
+```typescript
+// Interface — defines the required shape of an object
+interface Message {
+  id: string
+  role: "user" | "assistant"    // union type — only these exact values allowed
+  content: string
+  isStreaming?: boolean          // ? = optional field
+}
+
+// Function with typed parameter and return type
+async function ingestDocument(file: File): Promise<IngestResponse> {
+  // ...
+}
+
+// Non-null assertion — "trust me, this isn't undefined"
+const API_URL = process.env.NEXT_PUBLIC_API_URL!
+```
 
 ---
 
@@ -310,4 +347,4 @@ Tab 1 → backend folder, venv active → runs uvicorn
 Tab 2 → project root → git commands, npm commands, docker commands
 ```
 
-Keep both open while working.
+Once frontend work begins, you may want a third tab for `npm run dev` inside `frontend/`.
