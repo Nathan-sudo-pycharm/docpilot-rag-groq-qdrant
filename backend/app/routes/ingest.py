@@ -5,6 +5,7 @@ from app.core.config import settings
 from app.services.chunker import load_and_chunk
 from app.services.embedder import embed_texts
 import uuid
+from qdrant_client.models import Filter, FieldCondition, MatchValue
 
 # APIRouter is like a mini FastAPI app — it holds routes that get
 # registered onto the main app. Splitting routes into files like this
@@ -55,3 +56,29 @@ async def ingest_document(file: UploadFile = File(...)):
         "ingested_chunks": len(points),
         "filename": file.filename,
     }
+
+
+
+@router.delete("/{filename}")
+async def delete_document(filename: str):
+    """
+    Deletes all chunks belonging to a specific document from Qdrant.
+
+    We stored the original filename on every chunk's payload under
+    the "source" key back in Day 3's chunker.py. This lets us delete
+    by filtering on that field, rather than needing to track
+    individual point IDs ourselves.
+    """
+    get_qdrant().delete(
+        collection_name=settings.qdrant_collection,
+        points_selector=Filter(
+            must=[
+                FieldCondition(
+                    key="source",
+                    match=MatchValue(value=filename),
+                )
+            ]
+        ),
+    )
+
+    return {"deleted": filename}
