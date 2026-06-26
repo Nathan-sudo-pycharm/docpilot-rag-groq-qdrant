@@ -45,3 +45,18 @@ export async function ingestDocument(file: File): Promise<IngestResponse> {
   // try to use a field that doesn't exist on IngestResponse.
   return res.json()
 }
+
+
+// Deletes a document and all its chunks from the backend.
+// We don't expect any data back, just confirmation it succeeded —
+// so the return type is Promise<void> (a promise that resolves
+// with nothing meaningful).
+export async function deleteDocument(filename: string): Promise<void> {
+  const res = await fetch(`${API_URL}/ingest/${filename}`, {
+    method: "DELETE",
+  })
+
+  if (!res.ok) {
+    throw new Error("Failed to delete document")
+  }
+}
