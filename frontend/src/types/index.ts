@@ -24,3 +24,13 @@ export interface IngestResponse {
   ingested_chunks: number
   filename: string
 }
+
+// Tracks a document that's been uploaded in the current session.
+// This is frontend-only state — we're not fetching this from any
+// backend "list documents" endpoint, since we don't have one.
+// We build this list ourselves as uploads happen.
+export interface Document {
+  filename: string
+  chunkCount: number
+  uploadedAt: Date
+}
