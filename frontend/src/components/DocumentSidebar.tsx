@@ -10,9 +10,6 @@ interface Props {
   onRemove: (filename: string) => Promise<void>
 }
 
-// A small helper function — not a component, just a regular
-// TypeScript function — that converts a Date into a friendly
-// relative string like "6m ago" or "2h ago".
 function formatRelativeTime(date: Date): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
   if (seconds < 60) return "just now"
@@ -26,15 +23,15 @@ function formatRelativeTime(date: Date): string {
 
 export function DocumentSidebar({ documents, isUploading, onUpload, onRemove }: Props) {
   return (
-    <aside className="w-72 border-r border-gray-200 dark:border-gray-800 flex flex-col h-screen">
+    <aside className="w-80 border-r border-gray-200 dark:border-gray-800 flex flex-col h-screen bg-white dark:bg-[#0d0d0d]">
       <div className="p-4 border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center gap-2">
-          <h1 className="font-semibold text-sm">DocPilot</h1>
-          <span className="text-[10px] uppercase bg-gray-100 dark:bg-gray-800 text-gray-500 px-1.5 py-0.5 rounded">
+          <h1 className="font-semibold text-base">DocPilot</h1>
+          <span className="text-xs uppercase bg-gray-100 dark:bg-gray-800 text-gray-500 px-1.5 py-0.5 rounded">
             Beta
           </span>
         </div>
-        <p className="text-xs text-gray-500 mt-0.5">RAG-powered support agent</p>
+        <p className="text-sm text-gray-500 mt-0.5">RAG-powered support agent</p>
       </div>
 
       <div className="p-4">
@@ -43,39 +40,30 @@ export function DocumentSidebar({ documents, isUploading, onUpload, onRemove }: 
 
       <div className="flex-1 overflow-y-auto px-4">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-xs font-medium text-gray-500 uppercase">Documents</p>
-          <span className="text-xs text-gray-400">{documents.length}</span>
+          <p className="text-sm font-medium text-gray-500 uppercase">Documents</p>
+          <span className="text-sm text-gray-400">{documents.length}</span>
         </div>
 
         {documents.length === 0 ? (
-          <p className="text-xs text-gray-400">No documents yet</p>
+          <p className="text-sm text-gray-400">No documents yet</p>
         ) : (
-          // .map() loops over the array and returns one JSX element
-          // per document. The `key` prop is REQUIRED by React whenever
-          // you render a list — it helps React track which item is
-          // which across re-renders, so it can update efficiently
-          // instead of re-rendering the entire list every time.
           documents.map(doc => (
             <div
               key={doc.filename}
-              className="group flex items-start justify-between py-2 border-b border-gray-100 dark:border-gray-900"
+              className="group flex items-start justify-between py-2.5 border-b border-gray-100 dark:border-gray-900"
             >
               <div className="flex items-start gap-2 min-w-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500 mt-1.5 flex-shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-green-500 mt-1.5 flex-shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-xs truncate">{doc.filename}</p>
-                  <p className="text-xs text-gray-400">
-                    {doc.chunkCount} chunks · {formatRelativeTime(doc.uploadedAt)}
+                  <p className="text-sm truncate">{doc.filename}</p>
+                  <p className="text-sm text-gray-400" suppressHydrationWarning>
+                    {doc.chunkCount} chunks · {formatRelativeTime(new Date(doc.uploadedAt))}
                   </p>
                 </div>
               </div>
-
-              {/* opacity-0 + group-hover:opacity-100 means this X button
-                  is invisible by default and only appears when the user
-                  hovers over the parent div (the one with className="group") */}
               <button
                 onClick={() => onRemove(doc.filename)}
-                className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-opacity text-xs px-1"
+                className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-opacity text-sm px-1"
                 aria-label={`Remove ${doc.filename}`}
               >
                 ✕
@@ -83,6 +71,20 @@ export function DocumentSidebar({ documents, isUploading, onUpload, onRemove }: 
             </div>
           ))
         )}
+      </div>
+
+      <div className="p-4 border-t border-gray-100 dark:border-gray-900">
+        <p className="text-m text-gray-400">
+          Built by{" "}
+          <a
+            href="https://nathansequeirafinal.vercel.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:underline"
+          >
+            Nathan Sequeira
+          </a>
+        </p>
       </div>
     </aside>
   )
