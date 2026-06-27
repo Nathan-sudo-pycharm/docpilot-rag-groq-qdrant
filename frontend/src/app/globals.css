@@ -1,8 +1,21 @@
 @import "tailwindcss";
 
+/* This tells Tailwind v4: "dark mode is controlled by a CSS class
+   named 'dark' somewhere up the tree (which next-themes adds to
+   <html>), NOT by the OS media query directly." This is what lets
+   our manual toggle button override the system preference. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
+}
+
+.dark {
+  /* True near-black, matching the design reference — NOT navy,
+     NOT a generic dark gray. This is the exact Vercel-style value. */
+  --background: #0a0a0a;
+  --foreground: #f2f2f2;
 }
 
 @theme inline {
@@ -12,15 +25,8 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
