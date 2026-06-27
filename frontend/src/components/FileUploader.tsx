@@ -39,7 +39,7 @@ export function FileUploader({ onUpload, isUploading }: Props) {
     [onUpload]
   )
 
-  return (
+return (
     <div
       onDragOver={e => {
         e.preventDefault()
@@ -48,7 +48,7 @@ export function FileUploader({ onUpload, isUploading }: Props) {
       onDragLeave={() => setIsDragging(false)}
       onDrop={handleDrop}
       className={`
-        border border-dashed rounded-lg p-4 text-center transition-colors
+        border border-dashed rounded-lg p-5 text-center transition-colors
         ${isDragging
           ? "border-blue-500 bg-blue-50 dark:bg-blue-950/20"
           : "border-gray-300 dark:border-gray-700"
@@ -56,10 +56,10 @@ export function FileUploader({ onUpload, isUploading }: Props) {
       `}
     >
       {isUploading ? (
-        <p className="text-sm text-gray-500">Uploading...</p>
+        <p className="text-base text-gray-500">Uploading...</p>
       ) : (
         <>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-base text-gray-600 dark:text-gray-400">
             Drop PDF here or{" "}
             <label className="text-blue-600 cursor-pointer hover:underline">
               browse
@@ -71,7 +71,7 @@ export function FileUploader({ onUpload, isUploading }: Props) {
               />
             </label>
           </p>
-          <p className="text-xs text-gray-400 mt-1">PDF up to 25 MB</p>
+          <p className="text-sm text-gray-400 mt-1">PDF up to 25 MB</p>
         </>
       )}
     </div>
