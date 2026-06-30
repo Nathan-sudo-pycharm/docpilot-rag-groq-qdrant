@@ -7,7 +7,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL!
 
 // We import the type we defined earlier. This tells TypeScript
 // exactly what shape of object this function will return.
-import type { IngestResponse } from "@/types"
+import type { DocumentSummary, IngestResponse } from "@/types"
 
 // async function = a function that does something that takes time
 // (like a network request) without freezing the whole page while waiting.
@@ -59,4 +59,18 @@ export async function deleteDocument(filename: string): Promise<void> {
   if (!res.ok) {
     throw new Error("Failed to delete document")
   }
+}
+
+// Fetches the real, current list of documents from Qdrant.
+// Used on page load to sync the sidebar with what's actually
+// stored, rather than relying on frontend-only session state
+// that resets on every refresh.
+export async function listDocuments(): Promise<DocumentSummary[]> {
+  const res = await fetch(`${API_URL}/ingest`)
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch documents")
+  }
+
+  return res.json()
 }
