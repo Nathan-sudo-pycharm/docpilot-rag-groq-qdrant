@@ -82,3 +82,42 @@ async def delete_document(filename: str):
     )
 
     return {"deleted": filename}
+
+@router.get("")
+async def list_documents():
+    """
+    Returns a list of unique documents currently stored in Qdrant,
+    grouped by filename, with their chunk counts.
+
+    Qdrant doesn't have a native "list distinct values" query, so we
+    scroll through all points and aggregate them in Python. This is
+    fine at small scale (hundreds/thousands of chunks) but would need
+    a different approach at much larger scale.
+    """
+    client = get_qdrant()
+
+    # scroll() retrieves points in batches. We only need the payload
+    # (not the actual vectors) since we're just counting by filename.
+    documents: dict[str, int] = {}
+    offset = None
+
+    while True:
+        records, offset = client.scroll(
+            collection_name=settings.qdrant_collection,
+            with_payload=["source"],
+            with_vectors=False,
+            limit=100,
+            offset=offset,
+        )
+
+        for record in records:
+            source = record.payload.get("source", "unknown")
+            documents[source] = documents.get(source, 0) + 1
+
+        if offset is None:
+            break
+
+    return [
+        {"filename": filename, "chunk_count": count}
+        for filename, count in documents.items()
+    ]
