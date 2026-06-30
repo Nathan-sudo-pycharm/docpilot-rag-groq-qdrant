@@ -8,8 +8,8 @@ import { DocumentSidebar } from "@/components/DocumentSidebar"
 import { ThemeToggle } from "@/components/ThemeToggle"
 
 export default function Home() {
-  const { messages, isLoading, sendMessage } = useChat()
-  const { documents, isUploading, uploadDocument, removeDocument } = useDocuments()
+  const { messages, isLoading, sendMessage, clearChat } = useChat()
+  const { documents, isUploading, isLoadingDocuments, uploadDocument, removeDocument } = useDocuments()
   const [input, setInput] = useState<string>("")
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -36,22 +36,33 @@ useEffect(() => {
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-[#0a0a0a] text-gray-900 dark:text-gray-100">
       <DocumentSidebar
-        documents={documents}
-        isUploading={isUploading}
-        onUpload={uploadDocument}
-        onRemove={removeDocument}
-      />
+  documents={documents}
+  isUploading={isUploading}
+  isLoadingDocuments={isLoadingDocuments}
+  onUpload={uploadDocument}
+  onRemove={removeDocument}
+/>
 
       <div className="flex-1 flex flex-col">
         <header className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-          <div>
-            <h2 className="font-semibold text-base">Ask anything</h2>
-            <p className="text-sm text-gray-500">
-              {documents.length} document{documents.length !== 1 ? "s" : ""} loaded · {messages.length} messages
-            </p>
-          </div>
-          <ThemeToggle />
-        </header>
+  <div>
+    <h2 className="font-semibold text-base">Ask anything</h2>
+    <p className="text-sm text-gray-500">
+      {documents.length} document{documents.length !== 1 ? "s" : ""} loaded · {messages.length} messages
+    </p>
+  </div>
+  <div className="flex items-center gap-3">
+    {messages.length > 0 && (
+      <button
+  onClick={clearChat}
+  className="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 rounded-lg px-3 py-1.5 transition-colors cursor-pointer"
+>
+  Clear chat
+</button>
+    )}
+    <ThemeToggle />
+  </div>
+</header>
 
         <div className="flex-1 overflow-y-auto p-4 max-w-4xl mx-auto w-full">
           {messages.length === 0 && (
