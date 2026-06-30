@@ -1,4 +1,4 @@
-# 🤖 docpilot-rag-groq-qdrant
+# docpilot-rag-groq-qdrant
 
 > A customer support chatbot that actually knows your business — because you train it on your own documents.
 
@@ -10,7 +10,7 @@ A working RAG (Retrieval-Augmented Generation) application: upload a PDF, ask qu
 
 Upload any PDF. The system splits it into chunks, converts each chunk into a vector embedding (locally — no API key needed for this part), and stores it in Qdrant. Ask a question in the chat, and the system finds the most relevant chunks, sends them to an LLM along with your question, and streams back an answer token by token. If the answer isn't in your document, it says so — it doesn't make things up.
 
-![DocPilot Chat Interface](Documentation/screenshots/chat-demo.png)
+![DocPilot Chat Interface](Documentation/Screenshots/chat-demo.png)
 *Real conversation, grounded in an uploaded PDF — including a follow-up question and a language switch mid-conversation.*
 
 ---
@@ -38,7 +38,7 @@ Upload any PDF. The system splits it into chunks, converts each chunk into a vec
 - ✅ Rate limiting (10 req/min per IP) to stay within free-tier API limits
 - ✅ Light/dark theme, defaults to your OS preference
 
-![DocPilot Document Sidebar](Documentation/screenshots/sidebar-demo.png)
+![DocPilot Document Sidebar](Documentation/Screenshots/sidebar-demo.png)
 *Document tracking sidebar — upload status, chunk counts, and one-click removal.*
 
 ---
