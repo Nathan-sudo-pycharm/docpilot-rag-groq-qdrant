@@ -34,3 +34,13 @@ export interface Document {
   chunkCount: number
   uploadedAt: Date
 }
+
+// Matches exactly what GET /ingest returns from the backend.
+// Note this is intentionally similar to but distinct from our
+// frontend-only `Document` type — this one represents raw backend
+// data (snake_case, matching Python), while `Document` represents
+// our UI's shape (camelCase, with a Date object).
+export interface DocumentSummary {
+  filename: string
+  chunk_count: number
+}
