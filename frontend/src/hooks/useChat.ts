@@ -115,5 +115,13 @@ export function useChat() {
     }
   }, [])
 
-  return { messages, isLoading, sendMessage }
+  // Resets the chat back to empty. Simple by design — we're not
+  // calling any backend endpoint here, since chat messages only
+  // ever lived in frontend state to begin with (unlike documents,
+  // which are persisted in Qdrant).
+  const clearChat = useCallback(() => {
+    setMessages([])
+  }, [])
+
+  return { messages, isLoading, sendMessage, clearChat }
 }
