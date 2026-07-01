@@ -61,15 +61,29 @@ async def ingest_document(file: UploadFile = File(...)):
 
 @router.delete("/{filename}")
 async def delete_document(filename: str):
-    """
-    Deletes all chunks belonging to a specific document from Qdrant.
+    client = get_qdrant()
+    
+    # Check if any chunks exist for this filename before deleting.
+    # count() with a filter returns how many points match.
+    result = client.count(
+        collection_name=settings.qdrant_collection,
+        count_filter=Filter(
+            must=[
+                FieldCondition(
+                    key="source",
+                    match=MatchValue(value=filename),
+                )
+            ]
+        ),
+    )
 
-    We stored the original filename on every chunk's payload under
-    the "source" key back in Day 3's chunker.py. This lets us delete
-    by filtering on that field, rather than needing to track
-    individual point IDs ourselves.
-    """
-    get_qdrant().delete(
+    if result.count == 0:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Document '{filename}' not found"
+        )
+
+    client.delete(
         collection_name=settings.qdrant_collection,
         points_selector=Filter(
             must=[
