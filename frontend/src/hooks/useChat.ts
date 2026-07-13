@@ -76,37 +76,55 @@ export function useChat() {
         
         // The backend sends lines like: "data: Hello\n\ndata:  world\n\n"
         // We split by newline, then keep only lines that start with "data: "
-        const lines = rawChunk
-          .split("\n")
-          .filter(line => line.startsWith("data: "))
+        const lines = rawChunk.split("\n")
 
-        for (const line of lines) {
-          const token = line.replace("data: ", "")
+let i = 0
+while (i < lines.length) {
+  const line = lines[i]
 
-          if (token === "[DONE]") {
-            // The backend's sentinel value — tells us the stream is over.
-            // Flip isStreaming to false so the blinking cursor disappears.
-            setMessages(prev =>
-              prev.map(m =>
-                m.id === assistantMessage.id
-                  ? { ...m, isStreaming: false }
-                  : m
-              )
-            )
-            break
-          }
+  // Handle sources event — two lines: "event: sources" then "data: [...]"
+  if (line === "event: sources") {
+    const dataLine = lines[i + 1] ?? ""
+    if (dataLine.startsWith("data: ")) {
+      const sources = JSON.parse(dataLine.replace("data: ", ""))
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === assistantMessage.id
+            ? { ...m, sources }
+            : m
+        )
+      )
+    }
+    i += 2
+    continue
+  }
 
-          // Append this token onto the assistant message's existing content.
-          // We use .map() to find the right message by id and update
-          // just that one — React state should never be mutated directly.
-          setMessages(prev =>
-            prev.map(m =>
-              m.id === assistantMessage.id
-                ? { ...m, content: m.content + token }
-                : m
-            )
-          )
-        }
+  // Handle regular token
+  if (line.startsWith("data: ")) {
+    const token = line.replace("data: ", "")
+
+    if (token === "[DONE]") {
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === assistantMessage.id
+            ? { ...m, isStreaming: false }
+            : m
+        )
+      )
+      break
+    }
+
+    setMessages(prev =>
+      prev.map(m =>
+        m.id === assistantMessage.id
+          ? { ...m, content: m.content + token }
+          : m
+      )
+    )
+  }
+
+  i++
+}
       }
     } catch (error) {
       console.error("Chat error:", error)
