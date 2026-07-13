@@ -3,33 +3,24 @@ from app.core.qdrant import get_qdrant
 from app.core.config import settings
 from app.services.embedder import embed_texts
 from typing import Generator
+import json
 
 _groq = Groq(api_key=settings.groq_api_key)
 
-# This prompt is critical. It tells the LLM:
-# 1. Its role (support agent)
-# 2. The rule (only answer from the context provided)
-# 3. What to do when it doesn't know
-# Without rule 2, the LLM will mix in its training data and hallucinate.
 SYSTEM_PROMPT = """You are a helpful customer support agent.
 Answer ONLY based on the context provided below.
 If the answer is not in the context, say: "I don't have information about that in the provided documents."
 Be concise, friendly, and accurate."""
 
 
-def retrieve_context(question: str, top_k: int = 5) -> list[str]:
+def retrieve_context(question: str, top_k: int = 5) -> list[dict]:
     """
-    Converts the question to a vector using the SAME local embedder
-    from Day 3, searches Qdrant for the nearest chunks.
-
-    top_k=5 is a good default — enough context without overwhelming
-    the LLM with irrelevant chunks.
+    Returns a list of dicts with text + source metadata instead of
+    just text strings. We need the metadata (filename, page) for
+    citations, so we stop discarding it here.
     """
     [q_vector] = embed_texts([question])
 
-    # query_points() is the modern qdrant-client API (replaces the
-    # older, now-deprecated .search() method). It returns a response
-    # object with a `.points` list instead of a bare list of hits.
     response = get_qdrant().query_points(
         collection_name=settings.qdrant_collection,
         query=q_vector,
@@ -37,21 +28,25 @@ def retrieve_context(question: str, top_k: int = 5) -> list[str]:
         with_payload=True,
     )
 
-    return [point.payload["text"] for point in response.points]
+    return [
+        {
+            "text": point.payload["text"],
+            "source": point.payload.get("source", "unknown"),
+            "page": point.payload.get("page", None),
+        }
+        for point in response.points
+    ]
 
 
 def stream_answer(question: str) -> Generator[str, None, None]:
     """
-    Full RAG pipeline — retrieve context then stream the LLM response.
-
-    Generator[str, None, None] means this function yields strings one
-    at a time instead of returning them all at once. This is what makes
-    streaming work — we yield each token as Groq sends it to us.
+    Yields answer tokens first, then one final JSON event with sources.
+    The frontend distinguishes them by checking if the token starts
+    with SOURCES_PREFIX.
     """
-    context_chunks = retrieve_context(question)
+    chunks = retrieve_context(question)
 
-    # Join chunks with a separator so the LLM sees them as distinct passages
-    context = "\n\n---\n\n".join(context_chunks)
+    context = "\n\n---\n\n".join(c["text"] for c in chunks)
 
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
@@ -61,8 +56,6 @@ def stream_answer(question: str) -> Generator[str, None, None]:
         },
     ]
 
-    # stream=True tells Groq to send tokens as they're generated,
-    # not wait until the full response is ready.
     stream = _groq.chat.completions.create(
         model="llama-3.1-8b-instant",
         messages=messages,
@@ -71,5 +64,18 @@ def stream_answer(question: str) -> Generator[str, None, None]:
 
     for chunk in stream:
         token = chunk.choices[0].delta.content
-        if token:    # some chunks arrive empty — skip them
+        if token:
             yield token
+
+    # After all tokens, yield a special sources event.
+    # Deduplicate by (source, page) so the same chunk doesn't
+    # appear twice if multiple hits came from the same page.
+    seen = set()
+    sources = []
+    for c in chunks:
+        key = (c["source"], c["page"])
+        if key not in seen:
+            seen.add(key)
+            sources.append({"filename": c["source"], "page": c["page"]})
+
+    yield f"__SOURCES__{json.dumps(sources)}"
