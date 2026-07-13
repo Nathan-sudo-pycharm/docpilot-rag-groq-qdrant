@@ -12,6 +12,8 @@ export interface Message {
   role: "user" | "assistant"        // can ONLY be one of these two exact strings
   content: string                   // the actual message text
   isStreaming?: boolean             // the ? makes this field OPTIONAL
+  sources?: { filename: string; page: number | null }[]
+
 }
 
 // This describes exactly what shape of data comes back from our
