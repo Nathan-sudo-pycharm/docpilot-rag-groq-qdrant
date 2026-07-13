@@ -27,6 +27,18 @@ export function MessageBubble({ message }: Props) {
         {message.isStreaming && message.content && (
           <span className="ml-0.5 inline-block w-0.5 h-4 bg-current animate-pulse" />
         )}
+
+        {/* Source citations — only shown on assistant messages once
+            streaming is done and sources have arrived */}
+        {!isUser && !message.isStreaming && message.sources && message.sources.length > 0 && (
+          <div className="mt-2 pt-2 border-t border-gray-300 dark:border-gray-600 space-y-0.5">
+            {message.sources.map((s, i) => (
+              <p key={i} className="text-xs text-gray-400 dark:text-gray-500">
+                Source: {s.filename}{s.page !== null ? ` · page ${s.page}` : ""}
+              </p>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
