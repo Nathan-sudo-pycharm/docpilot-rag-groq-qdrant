@@ -3,7 +3,8 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from app.services.rag import stream_answer
+from app.services.rag import stream_answer, retrieve_context
+import json
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -15,15 +16,26 @@ class ChatRequest(BaseModel):
 @router.post("")
 @limiter.limit("10/minute")
 async def chat(request: Request, body: ChatRequest):
+    chunks = retrieve_context(body.question)
+
+    seen = set()
+    sources = []
+    for c in chunks:
+        key = (c["source"], c["page"])
+        if key not in seen:
+            seen.add(key)
+            sources.append({
+                "filename": c["source"], 
+                "page": c["page"] + 1 if c["page"] is not None else None
+            })
+
+    sources_json = json.dumps(sources)
+
     def event_stream():
-        for token in stream_answer(body.question):
-            if token.startswith("__SOURCES__"):
-                # Send sources as a separate SSE event type so the
-                # frontend can parse it differently from answer tokens.
-                payload = token[len("__SOURCES__"):]
-                yield f"event: sources\ndata: {payload}\n\n"
-            else:
-                yield f"data: {token}\n\n"
+        for token in stream_answer(body.question, chunks):
+            safe_token = token.replace("\n", "\\n")
+            yield f"data: {safe_token}\n\n"
+        yield f"event: sources\ndata: {sources_json}\n\n"
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(
