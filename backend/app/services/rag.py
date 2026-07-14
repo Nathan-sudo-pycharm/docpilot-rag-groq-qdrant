@@ -37,15 +37,7 @@ def retrieve_context(question: str, top_k: int = 5) -> list[dict]:
         for point in response.points
     ]
 
-
-def stream_answer(question: str) -> Generator[str, None, None]:
-    """
-    Yields answer tokens first, then one final JSON event with sources.
-    The frontend distinguishes them by checking if the token starts
-    with SOURCES_PREFIX.
-    """
-    chunks = retrieve_context(question)
-
+def stream_answer(question: str, chunks: list[dict]) -> Generator[str, None, None]:
     context = "\n\n---\n\n".join(c["text"] for c in chunks)
 
     messages = [
@@ -66,16 +58,3 @@ def stream_answer(question: str) -> Generator[str, None, None]:
         token = chunk.choices[0].delta.content
         if token:
             yield token
-
-    # After all tokens, yield a special sources event.
-    # Deduplicate by (source, page) so the same chunk doesn't
-    # appear twice if multiple hits came from the same page.
-    seen = set()
-    sources = []
-    for c in chunks:
-        key = (c["source"], c["page"])
-        if key not in seen:
-            seen.add(key)
-            sources.append({"filename": c["source"], "page": c["page"]})
-
-    yield f"__SOURCES__{json.dumps(sources)}"
