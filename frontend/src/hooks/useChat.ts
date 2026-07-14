@@ -111,13 +111,14 @@ while (i < lines.length) {
             : m
         )
       )
-      break
+      i++
+      continue
     }
 
     setMessages(prev =>
       prev.map(m =>
         m.id === assistantMessage.id
-          ? { ...m, content: m.content + token }
+          ? { ...m, content: m.content + token.replace(/\\n/g, "\n") }
           : m
       )
     )
