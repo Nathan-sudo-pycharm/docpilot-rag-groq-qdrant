@@ -21,11 +21,10 @@ async def chat(request: Request, body: ChatRequest):
     seen = set()
     sources = []
     for c in chunks:
-        key = (c["source"], c["page"])
-        if key not in seen:
-            seen.add(key)
+        if c["source"] not in seen:
+            seen.add(c["source"])
             sources.append({
-                "filename": c["source"], 
+                "filename": c["source"],
                 "page": c["page"] + 1 if c["page"] is not None else None
             })
 
